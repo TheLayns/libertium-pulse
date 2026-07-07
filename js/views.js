@@ -96,10 +96,11 @@ export function renderSubbar(){
   if (mode === 'month') {
     const ms = MET.MONTHS;
     const i = ms.indexOf(state.monthIso);
-    pills = '<button class="month-nav" data-action="time-prev"' + (i <= 0 ? ' disabled' : '') + '>‹</button>'
+    pills = '<span style="display:inline-flex;gap:4px">'
+      + '<button class="month-nav" data-action="time-prev" title="Mois précédent"' + (i <= 0 ? ' disabled' : '') + '>‹</button>'
+      + '<button class="month-nav" data-action="time-next" title="Mois suivant"' + (i >= ms.length - 1 ? ' disabled' : '') + '>›</button></span>'
       + '<div class="month-pills">' + ms.map((m, j) =>
-        '<button class="mpill' + (m === state.monthIso ? ' active' : '') + (j < ms.length - 13 ? ' faint' : '') + '" data-action="month-set" data-m="' + m + '">' + monthShortYear(m) + '</button>').join('') + '</div>'
-      + '<button class="month-nav" data-action="time-next"' + (i >= ms.length - 1 ? ' disabled' : '') + '>›</button>';
+        '<button class="mpill' + (m === state.monthIso ? ' active' : '') + (j < ms.length - 13 ? ' faint' : '') + '" data-action="month-set" data-m="' + m + '">' + monthShortYear(m) + '</button>').join('') + '</div>';
   } else {
     pills = '<div class="month-pills">' + seasonsAvailable().map(s =>
       '<button class="mpill' + (s === state.seasonYear ? ' active' : '') + '" data-action="season-set" data-s="' + s + '">' + seasonLabel(s) + '</button>').join('') + '</div>';
