@@ -117,7 +117,8 @@ export function renderSubbar(){
 // ----- KPI -----
 function kpiRow(agg, prev, sparkVals, scopeName){
   const st = MET.statusOf(agg.score);
-  let h = '<div class="grid-kpi">';
+  const hasRs = agg.pillars.rs.exists && agg.pillars.rs.hasData;
+  let h = '<div class="grid-kpi' + (hasRs ? '' : ' k4') + '">';
   h += '<div class="tile hero-tile" style="border-top:3px solid ' + st.solid + '">'
     + '<div class="t-label">Score de santé — ' + esc(scopeName) + (agg.partial ? ' <span class="cov-badge warn">données partielles</span>' : '') + '</div>'
     + '<div><span class="hero-score" style="color:' + st.solid + '">' + agg.score + '</span><span class="hero-den"> /100</span></div>'
@@ -136,11 +137,13 @@ function kpiRow(agg, prev, sparkVals, scopeName){
   const sm = sparkMonths();
   const sSeries = pk => sm.map(m => agg._monthly?.get(m)?.[pk] ?? null);
 
-  h += tile('Réseaux sociaux', 'fb',
-    p.rs.hasData ? Math.round(p.rs.score) + '<span style="font-size:15px;color:var(--muted2)">/100</span>' : '—',
-    [p.rs.engFb != null ? 'FB ' + fmtPct(p.rs.engFb) : null, p.rs.engIg != null ? 'IG ' + fmtPct(p.rs.engIg) : null].filter(Boolean).join(' · ') || 'aucun compte équipé',
-    deltaHtml(p.rs.score, pp?.rs.score, 'pts0'),
-    svgSpark(sSeries('rs'), { color: '#8893a4', h: 34 }));
+  if (hasRs) {
+    h += tile('Réseaux sociaux', 'fb',
+      Math.round(p.rs.score) + '<span style="font-size:15px;color:var(--muted2)">/100</span>',
+      [p.rs.engFb != null ? 'FB ' + fmtPct(p.rs.engFb) : null, p.rs.engIg != null ? 'IG ' + fmtPct(p.rs.engIg) : null].filter(Boolean).join(' · '),
+      deltaHtml(p.rs.score, pp?.rs.score, 'pts0'),
+      svgSpark(sSeries('rs'), { color: '#8893a4', h: 34 }));
+  }
   h += tile('Sessions site', 'ga4',
     p.ga4.hasData ? fmtK(p.ga4.sessions) : '—',
     p.ga4.sessionsAvg != null ? 'moyenne ' + fmtInt(p.ga4.sessionsAvg) + ' / concession' : '',
@@ -148,7 +151,7 @@ function kpiRow(agg, prev, sparkVals, scopeName){
     svgSpark(sSeries('ga4v'), { color: '#8893a4', h: 34 }));
   h += tile('Note Google', 'gmb',
     p.gmb.hasData ? fmt1(p.gmb.rating) + ' ★' : '—',
-    p.gmb.revNew != null ? '+' + fmtInt(p.gmb.revNew) + ' avis sur la période' : '',
+    [p.gmb.revNew != null ? '+' + fmtInt(p.gmb.revNew) + ' avis' : null, p.gmb.ficheViews ? fmtK(p.gmb.ficheViews) + ' vues de fiches' : null].filter(Boolean).join(' · '),
     deltaHtml(p.gmb.rating, pp?.gmb.rating, 'pts1'),
     svgSpark(sSeries('gmbv'), { color: '#8893a4', h: 34 }));
   h += tile('Leboncoin', 'lbc',
@@ -175,23 +178,39 @@ function withMonthly(aggFn, agg){
 }
 
 // ----- Bloc compte national (Direction / Admin uniquement) -----
+// Les réseaux sociaux Libertium n'existent qu'au niveau national :
+// c'est ICI que vit tout le RS du dashboard.
 function nationalBlock(){
   const nat = MET.periodNational(currentMonths());
   if (!nat) return '';
   const prevM = previousMonths();
   const prev = prevM ? MET.periodNational(prevM) : null;
-  const tile = (pf, d, pd) => {
+  const sm = sparkMonths();
+  const serie = (ch, field) => sm.map(m => MET.getRow('national', 'NATIONAL', ch, m)?.[field] ?? null);
+
+  const tile = (pf, ch, d, pd, color) => {
     if (!d) return '';
     return '<div class="nat-tile"><span class="pf">' + pf + '</span>'
       + '<span class="v">' + fmtK(d.followers) + ' <span style="font-size:12px;color:var(--muted2);font-weight:600">abonnés</span></span>'
       + '<span class="d">' + deltaHtml(d.followers, pd?.followers, 'pct') + '</span>'
-      + '<span style="font-size:11.5px;color:var(--muted)">Portée ' + fmtK(d.reach) + ' · engagement ' + (d.eng != null ? fmtPct(d.eng) : '—') + '</span>'
+      + '<span style="font-size:11.5px;color:var(--muted)">Portée ' + fmtK(d.reach) + ' · engagement ' + (d.eng != null ? fmtPct(d.eng) : '—') + ' · ' + fmtInt(d.posts) + ' publications</span>'
+      + '<div style="margin-top:6px">' + svgSpark(serie(ch, 'reach'), { color, h: 32 }) + '</div>'
+      + '<span style="font-size:10px;color:var(--muted2)">Portée mensuelle</span>'
       + '</div>';
   };
-  return '<section class="card national-card"><div class="card-title">Comptes nationaux — Libertium France</div>'
-    + '<div class="card-sub">Facebook & Instagram nationaux · visibles uniquement en vision globale · hors score des BU</div>'
-    + '<div class="nat-grid">' + tile('Facebook national', nat.fb, prev?.fb) + tile('Instagram national', nat.ig, prev?.ig) + '</div>'
-    + '</section>';
+  const series = [
+    { name: 'Facebook', color: '#2E6FB0', values: serie('fb', 'reach') },
+    { name: 'Instagram', color: '#D63A8F', values: serie('ig', 'reach') }
+  ].filter(s => s.values.some(v => v != null));
+  return '<section class="card national-card"><div class="card-title">Réseaux sociaux — comptes nationaux Libertium France</div>'
+    + '<div class="card-sub">Facebook & Instagram nationaux (les concessions n’ont pas de compte propre) · visibles uniquement en vision globale · hors score des BU</div>'
+    + '<div class="nat-grid">'
+    + tile('Facebook national', 'fb', nat.fb, prev?.fb, '#2E6FB0')
+    + tile('Instagram national', 'ig', nat.ig, prev?.ig, '#D63A8F')
+    + '<div class="nat-tile" style="grid-column:span 2;min-width:260px"><span class="pf">Portée organique — évolution</span>'
+    + svgMultiLine(series, sm.map(monthShort), { fmt: fmtK, h: 150 })
+    + legendHtml(series) + '</div>'
+    + '</div></section>';
 }
 
 // ----- Alertes -----
@@ -311,18 +330,18 @@ function chartsSection(){
   if (isGlobal) {
     const series = visibleBus().map(bu => ({
       name: bu, color: BU_COLORS[bu].chart,
-      values: sm.map(m => { const r = MET.periodBu(bu, [m]).pillars.rs.reach; return r || null; })
+      values: sm.map(m => MET.periodBu(bu, [m]).pillars.ga4.sessions || null)
     })).filter(s => s.values.some(v => v != null));
-    h += '<section class="card chart-card"><div class="card-title">Portée organique RS — évolution mensuelle</div>'
-      + '<div class="card-sub">Facebook + Instagram · portée cumulée des comptes de chaque BU</div>'
+    h += '<section class="card chart-card"><div class="card-title">Trafic site — évolution mensuelle</div>'
+      + '<div class="card-sub">GA4 · sessions cumulées par business unit</div>'
       + '<div class="chart-svg-wrap">' + svgMultiLine(series, labels, { fmt: fmtK }) + '</div>'
       + legendHtml(series) + dataTableHtml(series, sm.map(monthLabel), fmtK)
       + '</section>';
   } else {
     const bu = state.profile.bu;
-    const series = [{ name: bu, color: BU_COLORS[bu].chart, values: sm.map(m => MET.periodBu(bu, [m]).pillars.rs.reach || null) }];
-    h += '<section class="card chart-card"><div class="card-title">Portée organique RS — évolution mensuelle</div>'
-      + '<div class="card-sub">Facebook + Instagram · comptes des concessions de ' + esc(bu) + '</div>'
+    const series = [{ name: bu, color: BU_COLORS[bu].chart, values: sm.map(m => MET.periodBu(bu, [m]).pillars.ga4.sessions || null) }];
+    h += '<section class="card chart-card"><div class="card-title">Trafic site — évolution mensuelle</div>'
+      + '<div class="card-sub">GA4 · sessions des concessions de ' + esc(bu) + '</div>'
       + '<div class="chart-svg-wrap">' + svgMultiLine(series, labels, { fmt: fmtK, area: true }) + '</div>'
       + dataTableHtml(series, sm.map(monthLabel), fmtK)
       + '</section>';
@@ -343,7 +362,7 @@ function chartsSection(){
       + '</section>';
   };
 
-  h += mkBars('Réseaux sociaux — score du pilier', 'FB + IG · engagement normalisé /100 — ' + esc(periodTitle()), a => a.pillars.rs.hasData ? Math.round(a.pillars.rs.score) : null, v => v + '/100', { max: 100 });
+  h += mkBars('Annonces Leboncoin — vues', 'Vues des annonces sur la période — ' + esc(periodTitle()), a => a.pillars.lbc.hasData ? a.pillars.lbc.views : null, fmtK);
   h += mkBars('Trafic site web', 'GA4 · sessions moyennes par concession et par mois — ' + esc(periodTitle()), a => a.pillars.ga4.sessionsAvg ?? (a.pillars.ga4.hasData ? a.pillars.ga4.sessions : null), fmtK);
   h += mkBars('Note Google (GBP)', 'Note moyenne des fiches — ' + esc(periodTitle()) + ' · échelle 3 → 5', a => a.pillars.gmb.rating, fmt1, { max: 5, domainMin: 3 });
   return h + '</div>';
@@ -384,7 +403,7 @@ function concTable(concs, title, sub){
   const sm = sparkMonths();
   let h = '<section class="card"><div class="card-title">' + esc(title) + '</div><div class="card-sub">' + esc(sub) + '</div>'
     + '<div style="overflow-x:auto"><table class="conc-table"><thead><tr>'
-    + '<th>Concession</th><th>Ville</th><th>RS</th><th>Score</th><th>Statut</th><th>Pilier le plus faible</th><th>Tendance</th></tr></thead><tbody>';
+    + '<th>Concession</th><th>Ville</th><th>Score</th><th>Statut</th><th>Pilier le plus faible</th><th>Tendance</th></tr></thead><tbody>';
   concs.map(c => ({ c, a: MET.periodConc(c.id, months) }))
     .filter(x => x.a.score != null)
     .sort((x, y) => x.a.score - y.a.score)
@@ -393,11 +412,9 @@ function concTable(concs, title, sub){
       const avail = Object.entries(a.pillars).filter(([, p]) => p.exists && p.hasData);
       const worst = avail.reduce((x, y) => (x[1].score <= y[1].score ? x : y));
       const spark = sm.map(m => MET.periodConc(c.id, [m]).score);
-      const rsIcons = (a.pillars.rs.exists ? (MET.hasAccount('concession', c.id, 'fb') ? 'FB' : '') + (MET.hasAccount('concession', c.id, 'ig') ? ' IG' : '') : '—');
       h += '<tr class="row" data-action="open-conc" data-id="' + esc(c.id) + '">'
         + '<td style="font-weight:700">' + esc(shortName(c.name)) + '</td>'
         + '<td style="color:var(--muted)">' + esc(cap(c.city)) + '</td>'
-        + '<td style="color:var(--muted2);font-size:10.5px;font-weight:700">' + rsIcons + '</td>'
         + '<td class="num">' + scorePill(a.score) + '</td>'
         + '<td>' + statusChip(st) + '</td>'
         + '<td style="color:var(--muted)">' + esc(PILLAR_LABEL[worst[0]]) + ' <span class="num" style="color:' + (worst[1].score < 50 ? 'var(--red-text)' : 'var(--muted2)') + '">' + Math.round(worst[1].score) + '/100</span></td>'
@@ -471,14 +488,14 @@ export function renderBuDetail(){
   };
   const bm = pk => sm.map(m => { const a = MET.periodBu(bu, [m]); return pk(a); });
   h += '<div class="grid-ch">'
-    + chCard('Réseaux sociaux', 'fb', p.rs.hasData ? Math.round(p.rs.score) + '/100' : '—',
+    + (p.rs.exists && p.rs.hasData ? chCard('Réseaux sociaux', 'fb', Math.round(p.rs.score) + '/100',
         [p.rs.engFb != null ? 'FB ' + fmtPct(p.rs.engFb) : null, p.rs.engIg != null ? 'IG ' + fmtPct(p.rs.engIg) : null].filter(Boolean).join(' · '),
-        deltaHtml(p.rs.score, pp?.rs.score, 'pts0'), bm(a => a.pillars.rs.score), p.rs.coverage)
+        deltaHtml(p.rs.score, pp?.rs.score, 'pts0'), bm(a => a.pillars.rs.score), p.rs.coverage) : '')
     + chCard('Sessions site', 'ga4', p.ga4.hasData ? fmtK(p.ga4.sessions) : '—',
         p.ga4.sessionsAvg != null ? 'moyenne ' + fmtInt(p.ga4.sessionsAvg) + ' / concession' : '',
         deltaHtml(p.ga4.sessions, pp?.ga4.sessions, 'pct'), bm(a => a.pillars.ga4.sessions), p.ga4.coverage)
     + chCard('Note Google', 'gmb', p.gmb.hasData ? fmt1(p.gmb.rating) + ' ★' : '—',
-        p.gmb.revNew != null ? '+' + fmtInt(p.gmb.revNew) + ' avis' : '',
+        [p.gmb.revNew != null ? '+' + fmtInt(p.gmb.revNew) + ' avis' : null, p.gmb.ficheViews ? fmtK(p.gmb.ficheViews) + ' vues de fiches' : null].filter(Boolean).join(' · '),
         deltaHtml(p.gmb.rating, pp?.gmb.rating, 'pts1'), bm(a => a.pillars.gmb.rating), p.gmb.coverage)
     + chCard('Leboncoin', 'lbc', p.lbc.hasData ? fmtK(p.lbc.views) + ' vues' : '—',
         p.lbc.leads != null ? fmtInt(p.lbc.leads) + ' contacts' : '',
@@ -505,7 +522,6 @@ export function renderDrawer(){
   let diag = a.score != null ? 'Score de <b>' + a.score + '/100</b> (' + st.label.toLowerCase() + '). ' : 'Aucune donnée sur la période. ';
   if (best) diag += 'Point fort : <b>' + PILLAR_LABEL_LC[best[0]] + '</b> (' + Math.round(best[1].score) + '/100). ';
   if (worst) diag += (worst[1].score < 50 ? 'À redresser : <b>' : 'Pilier le plus fragile : <b>') + PILLAR_LABEL_LC[worst[0]] + '</b> (' + Math.round(worst[1].score) + '/100).';
-  if (!a.pillars.rs.exists) diag += ' Cette concession n’a pas de compte RS propre — score calculé sur 3 piliers.';
 
   const row = (label, val, dHtml, series, color) =>
     '<div class="ch-row"><span class="cn">' + label + '</span>'

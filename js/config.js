@@ -45,14 +45,14 @@ export const SCORE = {
 
 // --- Canaux (métadonnées d'affichage) ---------------------------------
 export const CHANNELS = {
-  fb:  {name:'Facebook',  fullName:'Meta — Pages Facebook', tag:'Réseaux sociaux',
-        desc:'Pages Facebook : abonnés, portée organique et interactions (réactions, commentaires, partages). Le score utilise le taux d’engagement mensuel (interactions / abonnés).'},
-  ig:  {name:'Instagram', fullName:'Meta — Comptes Instagram Business', tag:'Réseaux sociaux',
-        desc:'Comptes Instagram professionnels : abonnés, portée et interactions. Le score utilise le taux d’engagement mensuel (interactions / abonnés).'},
+  fb:  {name:'Facebook',  fullName:'Meta — Page Facebook nationale', tag:'Réseaux sociaux',
+        desc:'Page Facebook nationale « Libertium France » : abonnés, portée organique, interactions et publications. Les concessions n’ont pas de page propre — ces indicateurs sont visibles en vision globale uniquement et n’entrent pas dans le score des BU.'},
+  ig:  {name:'Instagram', fullName:'Meta — Compte Instagram national', tag:'Réseaux sociaux',
+        desc:'Compte Instagram national : abonnés, portée, interactions et publications. Comme Facebook, il n’existe qu’au niveau national (vision globale uniquement).'},
   ga4: {name:'Sessions site', fullName:'Google Analytics 4', tag:'Site web',
         desc:'Sessions mensuelles sur le site Libertium, ventilées par concession. Le score utilise la moyenne de sessions par concession.'},
   gmb: {name:'Fiches Google', fullName:'Google Business Profile', tag:'Visibilité locale',
-        desc:'Fiches Google des concessions : note moyenne, total d’avis et nouveaux avis du mois. Le score combine la note (70 %) et le volume de nouveaux avis (30 %).'},
+        desc:'Fiches Google des concessions : note moyenne, avis (total et nouveaux du mois) et vues des fiches. Le score combine la note (70 %) et le volume de nouveaux avis (30 %) ; les vues sont informatives.'},
   lbc: {name:'Leboncoin', fullName:'Leboncoin Pro', tag:'Annonces',
         desc:'Annonces Leboncoin : volume actif, vues et contacts reçus. Le score combine les vues (50 %) et les contacts (50 %). Saisie via le modèle CSV fourni (pas d’API Leboncoin).'}
 };

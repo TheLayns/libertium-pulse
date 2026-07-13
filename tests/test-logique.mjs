@@ -44,11 +44,14 @@ console.log('Sessions saison:', sNet.pillars.ga4.sessions, 'vs', sPrev.pillars.g
 console.assert(s2025.length === 10 && s2024.length === 10, 'FAIL fenêtres égales');
 console.assert(sNet.score >= 0 && sNet.score <= 100, 'FAIL score saison borné');
 
-// Concession sans RS => 3 piliers
-const noRs = MET.CONCESSIONS.find(c => !MET.hasAccount('concession', c.id, 'fb') && !MET.hasAccount('concession', c.id, 'ig'));
-const a3 = MET.periodConc(noRs.id, june);
-console.log('\nConcession sans RS:', noRs.name, '· score', a3.score, '· pilier RS existe:', a3.pillars.rs.exists);
+// RS national uniquement : AUCUNE concession/BU n'a le pilier RS -> score 3 piliers partout
+const anyConc = MET.CONCESSIONS[0];
+const a3 = MET.periodConc(anyConc.id, june);
+console.log('\nConcession (RS national only):', anyConc.name, '· score', a3.score, '· pilier RS existe:', a3.pillars.rs.exists);
 console.assert(!a3.pillars.rs.exists && a3.score != null, 'FAIL renormalisation 3 piliers');
+console.assert(MET.CONCESSIONS.every(c => !MET.hasAccount('concession', c.id, 'fb') && !MET.hasAccount('concession', c.id, 'ig')), 'FAIL: une concession a un compte RS');
+console.assert(!MET.periodBu('L.EST', june).pillars.rs.exists, 'FAIL: pilier RS présent au niveau BU');
+console.assert(a3.pillars.gmb.ficheViews > 0, 'FAIL: vues de fiches GBP absentes');
 
 // Trou LBC juin (L.SUD) => couverture partielle
 const sud = MET.periodBu('L.SUD', june);

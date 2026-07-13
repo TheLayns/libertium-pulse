@@ -23,28 +23,17 @@ const seasonFactor = iso => {
   return 1 + 0.18 * Math.cos(2 * Math.PI * (m - 6) / 12);
 };
 
-// Quelles concessions ont des comptes RS propres (déterministe) :
-// ~la moitié a une page Facebook, un tiers de celles-ci a aussi Instagram.
-export function rsAccounts(concessions){
-  const fb = [], ig = [];
-  concessions.forEach(c => {
-    const h = hashStr(c.id + ':rs') % 100;
-    if (h < 48) { fb.push(c.id); if (h < 16) ig.push(c.id); }
-  });
-  return { fb: new Set(fb), ig: new Set(ig) };
-}
-
+// Réalité Libertium : les réseaux sociaux n'existent QU'au niveau national
+// (une page Facebook + un compte Instagram « Libertium France »).
+// Les concessions n'ont pas de compte propre -> leur score = 3 piliers.
 export function generateDemoData(){
   const concessions = DEMO_CONCESSIONS.map(c => ({ ...c, resp: '', phone: '', email: '' }));
-  const { fb: hasFb, ig: hasIg } = rsAccounts(concessions);
 
   const aliases = [];
   concessions.forEach(c => {
     aliases.push({ channel: 'ga4', alias: c.name, scope: 'concession', target_id: c.id });
     aliases.push({ channel: 'gmb', alias: c.name, scope: 'concession', target_id: c.id });
     aliases.push({ channel: 'lbc', alias: c.name, scope: 'concession', target_id: c.id });
-    if (hasFb.has(c.id)) aliases.push({ channel: 'fb', alias: c.name, scope: 'concession', target_id: c.id });
-    if (hasIg.has(c.id)) aliases.push({ channel: 'ig', alias: c.name + ' (IG)', scope: 'concession', target_id: c.id });
   });
   aliases.push({ channel: 'fb', alias: 'Libertium France', scope: 'national', target_id: 'NATIONAL' });
   aliases.push({ channel: 'ig', alias: 'libertium_officiel', scope: 'national', target_id: 'NATIONAL' });
@@ -61,27 +50,23 @@ export function generateDemoData(){
       sessions: 1600 + rng() * 3000,
       rating: 3.8 + rng() * 1.0,
       revTotal: Math.round(20 + rng() * 380),
+      ficheViews: 800 + rng() * 4500,           // vues des fiches Google / mois
       ads: Math.round(8 + rng() * 32),
       viewsPerAd: 100 + rng() * 120,
-      leadRate: 0.004 + rng() * 0.004,          // contacts / vue
-      fbFollowers: Math.round(800 + rng() * 14000),
-      fbEng: 3.0 + rng() * 3.0,                 // % engagement FB
-      igFollowers: Math.round(500 + rng() * 7500),
-      igEng: 4.0 + rng() * 4.5                  // % engagement IG
+      leadRate: 0.004 + rng() * 0.004           // contacts / vue
     };
     let rating = base.rating, revTotal = base.revTotal;
-    let fbF = base.fbFollowers, igF = base.igFollowers;
 
     DEMO_MONTHS.forEach((iso, mi) => {
       const s = seasonFactor(iso), d = Math.pow(1 + drift, mi);
       const n = () => 1 + (rng() - 0.5) * 0.16;
 
       // --- scénario démo (histoires visibles, déterministes) ---
-      let fGa4 = 1, fFbEng = 1, fLbc = 1, dRating = 0;
+      let fGa4 = 1, fLbc = 1, dRating = 0;
       if (c.bu === 'L.OUEST') {
-        if (iso === '2026-04-01') { fGa4 = .82; fFbEng = .88; }
-        if (iso === '2026-05-01') { fGa4 = .62; fFbEng = .72; fLbc = .9; }
-        if (iso === '2026-06-01') { fGa4 = .32; fFbEng = .44; fLbc = .52; }
+        if (iso === '2026-04-01') { fGa4 = .82; fLbc = .95; }
+        if (iso === '2026-05-01') { fGa4 = .58; fLbc = .78; }
+        if (iso === '2026-06-01') { fGa4 = .3; fLbc = .42; }
       }
       if (c.bu === 'L.SUD-OUEST') {
         if (iso === '2026-05-01') fLbc = .8;
@@ -96,38 +81,21 @@ export function generateDemoData(){
       const sessions = Math.round(base.sessions * s * d * n() * fGa4);
       push('concession', c.id, 'ga4', iso, { sessions, users: Math.round(sessions * (0.68 + rng() * 0.1)) });
 
-      // GMB
+      // GMB (note, avis + vues des fiches en info secondaire)
       rating = clamp(rating + (rng() - 0.5) * 0.09 + dRating * 0.5, 3.1, 4.9);
       const revNew = Math.max(0, Math.round((3 + rng() * 9) * s * (dRating ? 0.6 : 1)));
       revTotal += revNew;
-      push('concession', c.id, 'gmb', iso, { rating: Math.round(rating * 10) / 10, reviews_total: revTotal, reviews_new: revNew });
+      push('concession', c.id, 'gmb', iso, {
+        rating: Math.round(rating * 10) / 10, reviews_total: revTotal, reviews_new: revNew,
+        views: Math.round(base.ficheViews * s * n())
+      });
 
-      // LBC — trou volontaire : 3 concessions L.SUD sans donnée en juin 2026
+      // LBC — trou volontaire : quelques concessions L.SUD sans donnée en juin 2026
       const lbcHole = iso === '2026-06-01' && c.bu === 'L.SUD' && hashStr(c.id + ':hole') % 7 === 0;
       if (!lbcHole) {
         const ads = Math.max(3, Math.round(base.ads * (0.9 + rng() * 0.2)));
         const views = Math.round(ads * base.viewsPerAd * s * d * n() * fLbc);
         push('concession', c.id, 'lbc', iso, { ads_count: ads, views, leads: Math.round(views * base.leadRate * fLbc) });
-      }
-
-      // Facebook / Instagram (uniquement les concessions équipées)
-      if (hasFb.has(c.id)) {
-        fbF = Math.round(fbF * (1 + 0.004 + rng() * 0.008));
-        const eng = clamp(base.fbEng * s * d * n() * fFbEng, 0.3, 9);
-        push('concession', c.id, 'fb', iso, {
-          followers: fbF, posts: Math.round(4 + rng() * 14),
-          reach: Math.round(fbF * (1.6 + rng() * 2.2) * s),
-          interactions: Math.round(fbF * eng / 100)
-        });
-      }
-      if (hasIg.has(c.id)) {
-        igF = Math.round(igF * (1 + 0.006 + rng() * 0.012));
-        const eng = clamp(base.igEng * s * d * n() * fFbEng, 0.4, 12);
-        push('concession', c.id, 'ig', iso, {
-          followers: igF, posts: Math.round(6 + rng() * 16),
-          reach: Math.round(igF * (2 + rng() * 3) * s),
-          interactions: Math.round(igF * eng / 100)
-        });
       }
     });
   });

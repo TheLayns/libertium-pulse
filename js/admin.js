@@ -115,7 +115,7 @@ const SOURCES = {
   ga4: { label: 'Google Analytics 4', channel: 'ga4',
     fields: { account: ['concession', 'propriete', 'flux', 'dimension', 'page'], sessions: ['sessions'], users: ['utilisateurs actifs', 'utilisateurs', 'users'] } },
   gbp: { label: 'Google Business Profile', channel: 'gmb',
-    fields: { account: ['etablissement', 'fiche', 'location', 'nom'], rating: ['note moyenne', 'note', 'rating'], reviews_total: ['total avis', 'avis cumules', 'total reviews'], reviews_new: ['nouveaux avis', 'avis', 'reviews'] } },
+    fields: { account: ['etablissement', 'fiche', 'location', 'nom'], rating: ['note moyenne', 'note', 'rating'], reviews_total: ['total avis', 'avis cumules', 'total reviews'], reviews_new: ['nouveaux avis', 'avis', 'reviews'], views: ['vues', 'impressions', 'affichages'] } },
   lbc: { label: 'Leboncoin (modèle CSV)', channel: 'lbc',
     fields: { account: ['concession'], ads_count: ['annonces'], views: ['vues'], leads: ['contacts'] } }
 };

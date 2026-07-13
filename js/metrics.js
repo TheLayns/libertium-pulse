@@ -79,7 +79,7 @@ export function concMonth(cid, iso){
   const gmb = { exists: true, hasData: !!rGm,
     score: rGm ? SCORE.gmbWeights.rating * lin(rGm.rating, SCORE.gmbRating.min, SCORE.gmbRating.max)
                + SCORE.gmbWeights.reviews * lin(rGm.reviews_new ?? 0, SCORE.gmbNewReviews.min, SCORE.gmbNewReviews.max) : null,
-    rating: rGm?.rating ?? null, revNew: rGm?.reviews_new ?? null, revTotal: rGm?.reviews_total ?? null };
+    rating: rGm?.rating ?? null, revNew: rGm?.reviews_new ?? null, revTotal: rGm?.reviews_total ?? null, ficheViews: rGm?.views ?? null };
 
   const rLb = getRow('concession', cid, 'lbc', iso);
   const lbc = { exists: true, hasData: !!rLb,
@@ -118,6 +118,7 @@ export function periodConc(cid, months){
   pill.gmb.rating = mean(ms.map(x => x.m.pillars.gmb.rating).filter(v => v != null));
   pill.gmb.revNew = sum(ms.map(x => x.m.pillars.gmb.revNew).filter(v => v != null));
   pill.gmb.revTotal = [...ms].reverse().find(x => x.m.pillars.gmb.revTotal != null)?.m.pillars.gmb.revTotal ?? null;
+  pill.gmb.ficheViews = sum(ms.map(x => x.m.pillars.gmb.ficheViews).filter(v => v != null)) || null;
   pill.lbc.views = sum(ms.map(x => x.m.pillars.lbc.views).filter(v => v != null));
   pill.lbc.leads = sum(ms.map(x => x.m.pillars.lbc.leads).filter(v => v != null));
   pill.lbc.ads = [...ms].reverse().find(x => x.m.pillars.lbc.ads != null)?.m.pillars.lbc.ads ?? null;
@@ -148,6 +149,7 @@ export function periodBu(bu, months){
   pill.ga4.sessionsAvg = mean(per.filter(x => x.p.pillars.ga4.hasData).map(x => x.p.pillars.ga4.sessions / Math.max(1, x.p.pillars.ga4.monthsWithData)));
   pill.gmb.rating = mean(per.map(x => x.p.pillars.gmb.rating).filter(v => v != null));
   pill.gmb.revNew = sum(per.map(x => x.p.pillars.gmb.revNew || 0));
+  pill.gmb.ficheViews = sum(per.map(x => x.p.pillars.gmb.ficheViews || 0)) || null;
   pill.lbc.views = sum(per.map(x => x.p.pillars.lbc.views || 0));
   pill.lbc.leads = sum(per.map(x => x.p.pillars.lbc.leads || 0));
 
@@ -176,6 +178,7 @@ export function periodNetwork(months){
   pill.ga4.sessionsAvg = mean(perBu.map(x => x.agg.pillars.ga4.sessionsAvg).filter(v => v != null));
   pill.gmb.rating = mean(perBu.map(x => x.agg.pillars.gmb.rating).filter(v => v != null));
   pill.gmb.revNew = sum(perBu.map(x => x.agg.pillars.gmb.revNew || 0));
+  pill.gmb.ficheViews = sum(perBu.map(x => x.agg.pillars.gmb.ficheViews || 0)) || null;
   pill.lbc.views = sum(perBu.map(x => x.agg.pillars.lbc.views || 0));
   pill.lbc.leads = sum(perBu.map(x => x.agg.pillars.lbc.leads || 0));
   const partial = perBu.some(x => x.agg.partial);
