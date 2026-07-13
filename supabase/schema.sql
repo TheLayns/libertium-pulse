@@ -262,6 +262,8 @@ insert into bus (code, label) values
   ('L.SUD-OUEST','Libertium Sud-Ouest')
 on conflict (code) do nothing;
 
-insert into access_list (email, role, display_name) values
-  ('nuxnux02290@gmail.com', 'admin', 'Admin')
+insert into access_list (email, role, bu, display_name) values
+  ('nuxnux02290@gmail.com', 'admin', null, 'Laywens (admin)'),
+  ('laywens.feriaux@gmail.com', 'direction', null, 'Test Direction'),
+  ('layns971@gmail.com', 'directeur_bu', 'L.OUEST', 'Test Directeur L.OUEST')
 on conflict (email) do nothing;
