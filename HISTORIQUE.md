@@ -180,6 +180,22 @@ node tests/test-rls.mjs
 
 ---
 
+### Surveiller le backend (5 minutes par mois)
+
+| Quoi | Où | Signal d'alerte |
+|---|---|---|
+| Fraîcheur des données | Dashboard → Administration → Imports | pas d'import depuis > 1 mois |
+| Envoi des e-mails de connexion | resend.com → Emails / Metrics | bounces, quota (100/jour · 3 000/mois gratuits) |
+| Santé du projet Supabase | Supabase → Home + Settings → Usage | taille base (500 Mo gratuits — usage actuel < 2 %), requêtes, projet « paused » |
+| Ping anti-pause | GitHub → Actions → workflow `keepalive` | runs en échec (rouge) |
+| Liste des accès | Dashboard → Administration → Accès | un e-mail qui ne devrait plus y être (départ, changement de poste) |
+| Sécurité après modification du schéma | `node tests/test-rls.mjs` | tout échec = ne pas déployer |
+
+**Sauvegardes** : le plan gratuit Supabase n'inclut pas de sauvegarde automatique. Les fichiers
+Excel importés SONT la sauvegarde des métriques (ré-importables via le wizard) ; le schéma est
+dans `supabase/schema.sql` ; les concessions dans le seed. En cas de besoin d'une copie complète :
+exporter les tables en CSV depuis le Table Editor de Supabase.
+
 ## 6. État au 13/07/2026 et suites
 
 **Fait** : produit complet en production, sécurité validée, données de démonstration en base,
