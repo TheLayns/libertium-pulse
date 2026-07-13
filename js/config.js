@@ -7,7 +7,8 @@
 // Après création du projet Supabase (voir README), renseigner les deux
 // valeurs ci-dessous : l'application bascule automatiquement en mode réel.
 export const SUPABASE_URL = 'https://efowzpbhcwjqxersniug.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmb3d6cGJoY3dqcXhlcnNuaXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5Mzk2NDgsImV4cCI6MjA5OTUxNTY0OH0.XfVhi5z0bkD_yM2D9zzPCCcRPGz3MxerOWIlgM5X_Yg';
+// Clé « publishable » (nouveau format Supabase) — publique par design, la RLS protège.
+export const SUPABASE_ANON_KEY = 'sb_publishable_GlF9lOwLOFxBmeIrOyJGhw_A9vSqt1Y';
 export const IS_DEMO = !SUPABASE_URL;
 
 // --- Charte (Carte Libertium France) ---------------------------------

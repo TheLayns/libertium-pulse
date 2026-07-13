@@ -13,9 +13,9 @@ jobs:
     steps:
       - name: Ping Supabase REST
         run: |
-          ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmb3d6cGJoY3dqcXhlcnNuaXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5Mzk2NDgsImV4cCI6MjA5OTUxNTY0OH0.XfVhi5z0bkD_yM2D9zzPCCcRPGz3MxerOWIlgM5X_Yg"
+          KEY="sb_publishable_GlF9lOwLOFxBmeIrOyJGhw_A9vSqt1Y"
           code=$(curl -s -o /dev/null -w "%{http_code}" \
             "https://efowzpbhcwjqxersniug.supabase.co/rest/v1/bus?select=code&limit=1" \
-            -H "apikey: $ANON" -H "Authorization: Bearer $ANON")
+            -H "apikey: $KEY")
           echo "HTTP $code"
           test "$code" = "200"
