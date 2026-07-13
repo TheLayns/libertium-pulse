@@ -59,5 +59,12 @@ const imp = await fetch(URL_ + '/rest/v1/imports', {
 });
 const importId = (await imp.json())[0]?.id ?? null;
 
-await upsert('metrics_monthly', data.rows.map(r => ({ ...r, import_id: importId })), 'scope,target_id,channel,month');
+// PostgREST exige des clés identiques sur toutes les lignes d'un lot -> normaliser
+const COLS = ['followers','reach','interactions','posts','sessions','users','rating','reviews_total','reviews_new','leads','ads_count','views'];
+const normalized = data.rows.map(r => {
+  const out = { scope: r.scope, target_id: r.target_id, channel: r.channel, month: r.month, import_id: importId };
+  COLS.forEach(c => { out[c] = r[c] ?? null; });
+  return out;
+});
+await upsert('metrics_monthly', normalized, 'scope,target_id,channel,month');
 console.log('Seed terminé ✓  (' + data.rows.length + ' métriques, ' + concessions.length + ' concessions)');
