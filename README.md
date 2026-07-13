@@ -1,6 +1,8 @@
 # Libertium Pulse v2
 
 Tableau de bord de la santé digitale du réseau Libertium — 67 concessions, 7 business units.
+
+📜 **Nouveau sur le projet ?** Lisez [HISTORIQUE.md](HISTORIQUE.md) — l'évolution du projet, les décisions et leurs raisons, et le guide de reprise complet.
 Sources : Meta (Facebook + Instagram séparés) · Google Analytics 4 · Google Business Profile · Leboncoin.
 
 🔗 **https://thelayns.github.io/libertium-pulse/**
