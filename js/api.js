@@ -29,16 +29,33 @@ export async function loadData(){
     return { concessions: d.concessions, aliases: d.aliases, rows: d.rows };
   }
   const c = await sb();
+  // PostgREST plafonne chaque requête à 1000 lignes : les métriques (plusieurs
+  // milliers) doivent être chargées par pages, sinon la vue est amputée.
+  const PAGE = 1000;
+  const fetchAllMetrics = async () => {
+    const all = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await c
+        .from('metrics_monthly')
+        .select('scope,target_id,channel,month,followers,reach,interactions,posts,sessions,users,rating,reviews_total,reviews_new,leads,ads_count,views')
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      all.push(...data);
+      if (data.length < PAGE) break;
+    }
+    return all;
+  };
   const [conc, ali, met] = await Promise.all([
     c.from('concessions').select('*').order('name'),
-    c.from('account_aliases').select('*'),
-    c.from('metrics_monthly').select('scope,target_id,channel,month,followers,reach,interactions,posts,sessions,users,rating,reviews_total,reviews_new,leads,ads_count,views')
+    c.from('account_aliases').select('*').range(0, 4999),
+    fetchAllMetrics()
   ]);
-  for (const r of [conc, ali, met]) if (r.error) throw r.error;
+  for (const r of [conc, ali]) if (r.error) throw r.error;
   return {
     concessions: conc.data.map(x => ({ ...x, city: x.city ?? '', brands: x.brands || [], ateliers: x.ateliers || [] })),
     aliases: ali.data,
-    rows: met.data.map(x => ({ ...x, month: x.month.slice(0, 10) }))
+    rows: met.map(x => ({ ...x, month: x.month.slice(0, 10) }))
   };
 }
 

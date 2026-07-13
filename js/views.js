@@ -240,13 +240,16 @@ function mapSection(){
     + '<div><div class="card-title">Carte du réseau</div>'
     + '<div class="card-sub" style="margin:0">' + concs.length + ' concession' + (concs.length > 1 ? 's' : '') + ' · cliquez sur un point pour ouvrir le détail</div></div>'
     + '<div class="grow"></div>'
-    + '<div class="seg"><button class="' + (state.mapMode === 'bu' ? 'on' : '') + '" data-action="map-mode" data-mode="bu">Couleur : BU</button>'
-    + '<button class="' + (state.mapMode === 'sante' ? 'on' : '') + '" data-action="map-mode" data-mode="sante">Couleur : santé</button></div>'
+    + (isGlobal
+      ? '<div class="seg"><button class="' + (state.mapMode === 'bu' ? 'on' : '') + '" data-action="map-mode" data-mode="bu">Couleur : BU</button>'
+        + '<button class="' + (state.mapMode === 'sante' ? 'on' : '') + '" data-action="map-mode" data-mode="sante">Couleur : santé</button></div>'
+      : '')
     + '</div>';
   const months = currentMonths();
-  // Colonne latérale : légende BU cliquable avec score, ou légende santé
+  // Colonne latérale : légende BU cliquable avec score, ou légende santé.
+  // En mono-BU, la liste des BU n'a pas de sens : toujours le compteur de santé.
   let side = '';
-  if (state.mapMode === 'bu') {
+  if (state.mapMode === 'bu' && isGlobal) {
     side = '<div class="side-t">Business units</div>' + visibleBus().map(bu => {
       const dim = state.mapFilterBu && state.mapFilterBu !== bu;
       const b = MET.BUS.find(x => x.bu === bu);
@@ -281,7 +284,8 @@ export function mapCtx(){
   return {
     allConcessions: MET.CONCESSIONS,
     concessions: visibleConcs(),
-    colorOf: c => state.mapMode === 'sante'
+    // Mono-BU : couleur = santé (tous les points d'un directeur ont la même BU)
+    colorOf: c => (state.mapMode === 'sante' || state.profile.role === 'directeur_bu')
       ? MET.statusOf(MET.periodConc(c.id, months).score ?? 0).solid
       : BU_COLORS[c.bu].marker,
     dimOf: c => state.mapFilterBu && c.bu !== state.mapFilterBu,
@@ -339,10 +343,25 @@ function chartsSection(){
       + '</section>';
   } else {
     const bu = state.profile.bu;
-    const series = [{ name: bu, color: BU_COLORS[bu].chart, values: sm.map(m => MET.periodBu(bu, [m]).pillars.ga4.sessions || null) }];
+    const concs = visibleConcs();
+    let series, sub;
+    if (concs.length <= 8) {
+      // Mono-BU avec peu de concessions : une ligne par concession
+      // (palette catégorielle validée — ici la couleur identifie la concession)
+      const CPAL = ['#D96420', '#2E6FB0', '#0F9180', '#D63A8F', '#B8891A', '#7E4FB5', '#3A5FC2', '#6b7280'];
+      series = concs.map((c, i) => ({
+        name: shortName(c.name), color: CPAL[i % CPAL.length],
+        values: sm.map(m => MET.concMonth(c.id, m).pillars.ga4.sessions ?? null)
+      })).filter(s => s.values.some(v => v != null));
+      sub = 'GA4 · sessions mensuelles par concession';
+    } else {
+      series = [{ name: bu, color: BU_COLORS[bu].chart, values: sm.map(m => MET.periodBu(bu, [m]).pillars.ga4.sessions || null) }];
+      sub = 'GA4 · sessions cumulées des ' + concs.length + ' concessions de ' + esc(bu);
+    }
     h += '<section class="card chart-card"><div class="card-title">Trafic site — évolution mensuelle</div>'
-      + '<div class="card-sub">GA4 · sessions des concessions de ' + esc(bu) + '</div>'
-      + '<div class="chart-svg-wrap">' + svgMultiLine(series, labels, { fmt: fmtK, area: true }) + '</div>'
+      + '<div class="card-sub">' + sub + '</div>'
+      + '<div class="chart-svg-wrap">' + svgMultiLine(series, labels, { fmt: fmtK, area: series.length === 1 }) + '</div>'
+      + (series.length > 1 ? legendHtml(series) : '')
       + dataTableHtml(series, sm.map(monthLabel), fmtK)
       + '</section>';
   }
@@ -444,13 +463,17 @@ export function renderDashboard(){
 
   let h = '<div class="main">';
   h += kpiRow(agg, prev, sparkVals, scopeName);
-  if (isGlobal) h += nationalBlock();
-  h += alertsSection(alerts);
-  h += mapSection();
-  if (isGlobal) h += buGrid();
-  else {
-    h += diagSection(state.profile.bu);
+  if (isGlobal) {
+    h += nationalBlock();
+    h += alertsSection(alerts);
+    h += mapSection();
+    h += buGrid();
+  } else {
+    // Home directeur : la liste des concessions juste sous le score global
     h += concTable(visibleConcs(), 'Mes concessions — ' + state.profile.bu, 'Classées de la plus fragile à la plus solide · cliquez pour le détail');
+    h += alertsSection(alerts);
+    h += mapSection();
+    h += diagSection(state.profile.bu);
   }
   h += chartsSection();
   h += '</div>';
